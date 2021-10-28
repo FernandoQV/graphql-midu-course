@@ -18,7 +18,7 @@ const persons = [
     id: "124587896-1254-778-45",
   },
   {
-    name: "TOny",
+    name: "Tony",
     phone: "14785212322",
     street: "CAlle Fullstack",
     city: "Santa",
@@ -38,7 +38,12 @@ const persons = [
 
 //describiendo los datos
 //La exclamacion hace obligatoria el campo !
+//enum para utilizar en los resolvers
 const typeDefinitions = gql`
+  enum YesNo {
+    Yes
+    Not
+  }
   type Address {
     street: String!
     city: String!
@@ -52,16 +57,26 @@ const typeDefinitions = gql`
     canDrink: String!
     id: ID!
   }
+
   type Query {
     personCount: Int!
-    allPersons: [Person]!
+    allPersons(phone: String): [Person]!
     findPerson(name: String!): Person
+  }
+  type Mutation {
+    editPhone(name: String!, phone: String!): Person
   }
 `;
 const resolvers = {
   Query: {
     personCount: () => persons.length,
-    allPersons: () => persons,
+    allPersons: (root, args) => {
+      if (!args.phone) return persons; //esto es para colocar le parametro phone comom opcional
+      const isPhone = (person) => {
+        return args.phone === "Yes" ? person.phone : !person.phone;
+      };
+      return persons.filter(isPhone);
+    },
     findPerson: (root, args) => {
       const { name } = args;
       return persons.find((person) => person.name === name);
@@ -77,6 +92,17 @@ const resolvers = {
     },
     check: () => "ok",
     canDrink: (root) => (root.age > 18 ? "Si" : "No"),
+  },
+  Mutation: {
+    editPhone: (root, args) => {
+      const { name, phone } = args;
+      const indexPerson = persons.findIndex((person) => person.name === name);
+      if (indexPerson == -1) return null;
+      const person = persons[indexPerson];
+      const updatePerson = { ...person, phone };
+      persons[indexPerson] = updatePerson;
+      return updatePerson;
+    },
   },
 };
 
